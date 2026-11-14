@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ROOMS, WALLS, DOORS, H, T, DOOR_H, WARDROBES, SAVEPOINTS, SAFE, SYMBOL_PANEL, ALTAR, PILLARS } from './Rooms.js';
+import { ROOMS, WALLS, DOORS, H, T, DOOR_H, WARDROBES, SAVEPOINTS, SAFE, SYMBOL_PANEL, ALTAR, PILLARS, STOVE, LEVER, MACHINE } from './Rooms.js';
 import { surf, solid, glow, basic } from './Retro.js';
 import * as P from './Props.js';
 
@@ -22,7 +22,7 @@ export function buildMansion(scene, col) {
   world.sky = [starPts, moon];
 
   // ---------- floors / ceilings ----------
-  const floorTex = { garden: ['grass', 3], hall: ['wood', 3], corridor: ['wood', 3], library: ['wood', 3], office: ['wood', 3], cellar: ['tile', 3] };
+  const floorTex = { garden: ['grass', 3], hall: ['wood', 3], corridor: ['wood', 3], library: ['wood', 3], office: ['wood', 3], cellar: ['tile', 3], kitchen: ['tile', 3], bedrooms: ['wood', 3], lab: ['metal', 3] };
   for (const r of ROOMS) {
     const q = rect(r.x1, r.x2, r.z1, r.z2), [tn, ts] = floorTex[r.id];
     const f = P.plane(q.w, q.d, surf(tn, r.id === 'garden' ? 0xffffff : 0xdddddd), q.cx, 0, q.cz, 'up', ts); f.receiveShadow = true; scene.add(f);
@@ -63,8 +63,8 @@ export function buildMansion(scene, col) {
     if (def.shelf) { mesh = P.bookshelf(def.w, DOOR_H, 0, 7); mesh.position.set(def.w / 2, 0, 0); }
     else {
       mesh = new THREE.Group();
-      if (def.axis === 'x') { mesh.add(P.box(def.w - 0.06, DOOR_H, 0.16, surf('darkwood', 0xbbbbbb), def.w / 2, DOOR_H / 2, 0, 1.5)); mesh.add(P.box(0.12, 0.12, 0.3, solid(0xc8a030), def.w - 0.25, 1.2, 0)); }
-      else { mesh.add(P.box(0.16, DOOR_H, def.w - 0.06, surf('darkwood', 0xbbbbbb), 0, DOOR_H / 2, def.w / 2, 1.5)); mesh.add(P.box(0.3, 0.12, 0.12, solid(0xc8a030), 0, 1.2, def.w - 0.25)); }
+      if (def.axis === 'x') { mesh.add(P.box(def.w - 0.06, DOOR_H, 0.16, surf(def.tex || 'darkwood', 0xbbbbbb), def.w / 2, DOOR_H / 2, 0, 1.5)); mesh.add(P.box(0.12, 0.12, 0.3, solid(0xc8a030), def.w - 0.25, 1.2, 0)); }
+      else { mesh.add(P.box(0.16, DOOR_H, def.w - 0.06, surf(def.tex || 'darkwood', 0xbbbbbb), 0, DOOR_H / 2, def.w / 2, 1.5)); mesh.add(P.box(0.3, 0.12, 0.12, solid(0xc8a030), 0, 1.2, def.w - 0.25)); }
     }
     piv.add(mesh); scene.add(piv);
     const c = def.axis === 'x' ? col.add(def.at - def.w / 2, def.at + def.w / 2, def.c - 0.18, def.c + 0.18, { door: true }) : col.add(def.c - 0.18, def.c + 0.18, def.at - def.w / 2, def.at + def.w / 2, { door: true });
@@ -118,7 +118,7 @@ export function buildMansion(scene, col) {
   for (const [x, z, ry, s] of [[14.5, 6.72, 0, 2], [20.5, 6.72, 0, 3], [16, 9.28, Math.PI, 4], [22, 9.28, Math.PI, 1]]) put(P.portrait(s, 0.9, 1.3), x, 2.5, z, ry);
 
   // ---------- library ----------
-  for (const x of [27.5, 30.5, 33.5]) { put(P.bookshelf(3, 3.6, 0, x | 0), x, 0, 0.55); blk(x, 0.55, 3, 0.6, false); }
+  for (const x of [27.5, 30.5]) { put(P.bookshelf(3, 3.6, 0, x | 0), x, 0, 0.55); blk(x, 0.55, 3, 0.6, false); }
   for (const z of [3.2, 6, 11, 13.6]) if (z !== 6) { put(P.bookshelf(2.6, 3.6, Math.PI / 2, z * 3 | 0), 25.55, 0, z); blk(25.55, z, 0.6, 2.6); }
   for (const z of [6.2, 9.6, 12.2]) { put(P.bookshelf(2.8, 3.6, -Math.PI / 2, z | 0), 40.45, 0, z); blk(40.45, z, 0.6, 2.8); }
   put(P.table(2.6, 1.3), 33, 0, 8); blk(33, 8, 2.6, 1.3);
@@ -150,6 +150,34 @@ export function buildMansion(scene, col) {
   const rune = new THREE.Mesh(new THREE.TorusGeometry(2.4, 0.05, 4, 16), glow(0x8a3be0)); rune.rotation.x = Math.PI / 2; rune.position.set(0, 0.05, -13.2); scene.add(rune);
   for (const [x, z] of [[-2.2, -16.5], [2.2, -16.5], [-3.5, -14], [3.5, -14]]) flame(put(P.candle(0, 0, 0), x, 0, z));
 
+  // ---------- kitchen ----------
+  put(P.box(10, 0.95, 0.8, surf('stone', 0x8a8a96), 0, 0, 0), -15.5, 0.475, -17.5); blk(-15.5, -17.5, 10, 0.8);
+  put(P.stove(), STOVE.x, 0, -17.4); blk(STOVE.x, -17.4, 1.5, 0.9);
+  world.stove = { x: STOVE.x, z: STOVE.z };
+  put(P.box(1.2, 2.2, 0.9, surf('metal', 0xbbbbbb), 0, 0, 0), -10.5, 1.1, -17.4); blk(-10.5, -17.4, 1.2, 0.9);
+  put(P.table(2.6, 1.4), -15, 0, -8); blk(-15, -8, 2.6, 1.4); put(P.chair(), -15, 0, -6.4, Math.PI); put(P.chair(), -17, 0, -8, -Math.PI / 2);
+  put(P.box(1.6, 2.2, 0.8, surf('darkwood'), 0, 0, 0), -24.2, 1.1, -14.4); blk(-24.2, -14.4, 0.8, 1.6);
+  for (const x of [-19, -16, -13]) { const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.2, 0.3, 6), surf('metal')); pot.position.set(x, 3.4, -12); scene.add(pot); const ch = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.2, 3), solid(0x222222)); ch.position.set(x, 4.1, -12); scene.add(ch); }
+  flame(put(P.candle(0, 0, 0), -14.4, 0.85, -7.6)); put(P.portrait(3, 0.9, 1.2), -24.75, 2.6, -6, Math.PI / 2);
+
+  // ---------- guest bedrooms ----------
+  scene.add(P.plane(9, 6, surf('carpet', 0x8899bb), 33, 0.02, -9, 'up', 2));
+  put(P.bed(0, 0x4a2a5a), 28, 0, -16.4); blk(28, -16.4, 1.7, 2.7); put(P.bed(0, 0x2a3a5a), 33, 0, -16.4); blk(33, -16.4, 1.7, 2.7);
+  put(P.box(0.8, 0.8, 0.6, surf('darkwood'), 0, 0, 0), 30.6, 0.4, -17.5); blk(30.6, -17.5, 0.8, 0.6); flame(put(P.candle(0, 0, 0), 30.9, 0.8, -17.5));
+  put(P.box(2.2, 1.1, 0.7, surf('darkwood'), 0, 0, 0), 37, 0.55, -1.0); blk(37, -1.0, 2.2, 0.7);
+  put(P.table(1.2, 1.2, 0.7), 38.5, 0, -9); blk(38.5, -9, 1.2, 1.2);
+  put(P.portrait(1, 1, 1.4), 40.75, 2.7, -8, -Math.PI / 2); put(P.portrait(4, 0.9, 1.2), 33, 2.7, -17.75, 0);
+  const lev = put(P.lever(), 25.35, 1.3, LEVER.z, -Math.PI / 2); world.lever = { x: LEVER.x, z: LEVER.z, rod: lev.userData.rod };
+
+  // ---------- secret laboratory ----------
+  const mach = put(P.machine(), MACHINE.x, 0, -16.6); col.add(MACHINE.x - 2, MACHINE.x + 2, -17.6, -15.6, { sight: false });
+  world.machine = { x: MACHINE.x, z: MACHINE.z, core: mach.userData.core };
+  world.tanks = [];
+  for (const [x, z] of [[11, -15.5], [23, -15.5], [11, -8], [23, -8]]) { const t = put(P.tank(2.8), x, 0, z); col.add(x - 0.8, x + 0.8, z - 0.8, z + 0.8, { sight: false }); world.tanks.push(t.userData.core); }
+  for (const x of [14.5, 19.5]) { put(P.table(2.2, 1.1, 0.9), x, 0, -4); blk(x, -4, 2.2, 1.1); }
+  scene.add(P.plane(4, 3, surf('carpet', 0x558877), 17, 0.02, -12, 'up', 2));
+  flame(put(P.candle(0, 0, 0), 14.5, 0.95, -4));
+
   // ---------- wardrobes & save points ----------
   for (const w of WARDROBES) {
     put(P.wardrobe(w.rot), w.x, 0, w.z);
@@ -163,6 +191,8 @@ export function buildMansion(scene, col) {
     world.flames.forEach((f, i) => { f.scale.set(1, 0.8 + Math.sin(t * 14 + i * 3) * 0.25 + Math.random() * 0.15, 1); });
     if (world.chandelier) world.chandelier.rotation.z = Math.sin(t * 0.7) * 0.025;
     world.saves.forEach((s) => { s.ring.rotation.z = t * 2; s.ring.position.y = 0.9 + Math.sin(t * 2) * 0.05; });
+    if (world.tanks) world.tanks.forEach((c, i) => { c.rotation.y = t * (1 + i * 0.3); c.position.y = 1.4 + Math.sin(t * 2 + i) * 0.08; });
+    if (world.machine) { world.machine.core.rotation.y = t * 2; world.machine.core.rotation.x = t; }
     if (world.altar.disc) { world.altar.disc.rotation.y = t * 1.5; world.altar.disc.position.y = 1.6 + Math.sin(t * 2) * 0.05; }
   };
   return world;

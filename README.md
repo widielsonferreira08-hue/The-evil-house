@@ -15,11 +15,11 @@ Este repositório contém o **Capítulo 1 jogável** (não é uma página estát
 | Abertura do estúdio (logo 3D + ruído de fita) e boot de console 32-bit original | ✅ |
 | Menu principal animado (NEW GAME / CONTINUE / LOAD / SETTINGS / EXTRAS / CREDITS / EXIT) | ✅ |
 | Willow low-poly procedural + animações (idle, andar, correr, olhar, susto, interagir, dano, morte, esconder) | ✅ |
-| Mansão: Jardim, Entrada/Grande Hall, Corredor do Tapete Vermelho, Biblioteca, Escritório, Porão (sala final) + nicho secreto | ✅ |
+| Mansão: Jardim, Grande Hall, Corredor do Tapete Vermelho, Biblioteca, Escritório, **Cozinha, Quartos de Hóspedes, Laboratório Secreto**, Porão (sala final) + nicho secreto | ✅ |
 | Câmera híbrida: terceira pessoa livre (jardim, corredor, porão) + câmeras fixas cinematográficas (hall, biblioteca, escritório) | ✅ |
-| Inimigos: **The Watcher** (patrulha → alerta → perseguição → ataque → busca → retorno), **Crawlers**, **Possessed Fox** | ✅ |
+| Inimigos: **The Watcher** (patrulha → alerta → perseguição → ataque → busca → retorno), **Crawlers**, **The Shadows** (rondam salas escuras; dissolvem na luz da lanterna), **Possessed Fox** | ✅ |
 | Esconderijos (guarda-roupas), pistola de faíscas com munição limitada, lanterna com bateria | ✅ |
-| Puzzles: chaves, código do cofre (pista num documento), painel de símbolos que abre estante secreta | ✅ |
+| Puzzles: chaves, cofre com código, painel de símbolos (estante secreta), fogão com código (armário), alavanca que abre passagem oculta e máquina do laboratório que precisa de 2 engrenagens | ✅ |
 | Inventário com 8 slots + aba FILES (documentos) | ✅ |
 | HUD estilo PS1 (retrato, vidas, cristais, munição, bateria, mensagens, diálogos) | ✅ |
 | Pausa real (ESC), 3 slots de save + autosave, checkpoints, 3 vidas, Game Over | ✅ |
@@ -27,7 +27,7 @@ Este repositório contém o **Capítulo 1 jogável** (não é uma página estát
 | Final bom, final ruim (Raposa Possuída), créditos, extras desbloqueáveis | ✅ |
 | Áudio 100% procedural (Web Audio API) — sem arquivos de som, sem licenças | ✅ |
 
-**Fica para os próximos capítulos:** cozinha, quartos, laboratório secreto, os inimigos *Shadows* (listados nos Extras como "planned") e mais puzzles.
+**Fica para os próximos capítulos:** andares superiores da mansão e mais variedade de inimigos. São **11 cristais** no total (5 ou mais mudam o final; pegar todos dá um final bom especial).
 
 ## Controles
 
@@ -45,7 +45,7 @@ Este repositório contém o **Capítulo 1 jogável** (não é uma página estát
 ## Como jogar (dicas sem spoiler)
 1. Leia tudo que encontrar — os documentos têm as pistas.
 2. O Watcher não pode ser morto; só atordoado. Guarda-roupas escondem você, mas não fique perto dele por muito tempo.
-3. Colete cristais: **5 ou mais** mudam o final.
+3. Os Shadows odeiam luz: aponte a lanterna para eles. Colete cristais: **5 ou mais** mudam o final.
 
 ## Rodar localmente
 

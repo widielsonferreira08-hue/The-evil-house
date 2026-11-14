@@ -8,7 +8,7 @@ import { openCredits } from '../ui/Menu.js';
 /** 05 — good / bad ending cutscenes, then credits and back to the title screen. */
 export class EndingScene {
   constructor(app) { this.app = app; this.scene = new THREE.Scene(); this.camera = new THREE.PerspectiveCamera(50, 1.6, 0.1, 100); this.t = 0; this.lines = []; this.li = -1; this.stage = 0; }
-  enter({ ending }) {
+  enter({ ending, perfect }) {
     const app = this.app, sc = this.scene; this.ending = ending;
     const meta = app.saves.meta(); meta.endings[ending] = true; meta.finished = true; app.saves.setMeta(meta);
     app.stopAll();
@@ -28,7 +28,7 @@ export class EndingScene {
       this.will = buildFox(); this.will.group.position.set(-1.4, 0, 0); this.will.group.rotation.y = 0.5; sc.add(this.will.group);
       this.twin = buildFox(); this.twin.group.position.set(1.6, 0, 0); this.twin.group.rotation.y = -0.5; this.twin.group.visible = false; this.twin.group.scale.setScalar(0.95); sc.add(this.twin.group);
       this.camera.position.set(0, 2.4, 7.5); app.audio.startMusic('credits');
-      this.lines = [{ who: '???', text: 'You found her...', color: '#a64dff' }, { who: 'Willow', text: 'I remember now. She was me — the part I left behind in this house.', color: '#ff8a1e' }, { who: 'Willow', text: 'Come home with me.', color: '#ff8a1e' }, { who: '', text: 'The dark lets go. Dawn comes through the broken windows, and the front door swings open.' }];
+      this.lines = [{ who: '???', text: 'You found her...', color: '#a64dff' }, { who: 'Willow', text: 'I remember now. She was me — the part I left behind in this house.', color: '#ff8a1e' }, { who: 'Willow', text: 'Come home with me.', color: '#ff8a1e' }, ...(perfect ? [{ who: '', text: 'All eleven crystals shine at once. Every lost memory finds its way home.', color: '#c58bff' }] : []), { who: '', text: 'The dark lets go. Dawn comes through the broken windows, and the front door swings open.' }];
       this.title = 'GOOD ENDING';
     }
     this.ui = h('div', 'full'); this.ui.style.cssText += ';pointer-events:auto'; root().appendChild(this.ui);

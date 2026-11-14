@@ -139,8 +139,9 @@ export function itemMesh(type) {
   const g = new THREE.Group();
   switch (type) {
     case 'crystal': g.add(crystalMesh()); break;
-    case 'brass_key': case 'cellar_key': {
-      const c = type === 'cellar_key' ? 0x9aa0b0 : 0xd8b030;
+    case 'gear': { const gm = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.06, 8), solid(0xd8b030)); gm.rotation.x = Math.PI / 2; g.add(gm); g.add(box(0.1, 0.1, 0.08, solid(0x40300a))); break; }
+    case 'brass_key': case 'cellar_key': case 'bedroom_key': {
+      const c = type === 'cellar_key' ? 0x9aa0b0 : type === 'bedroom_key' ? 0xc8d0e0 : 0xd8b030;
       const ring = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.03, 4, 6), solid(c)); g.add(ring);
       const s = box(0.05, 0.3, 0.05, solid(c), 0, -0.2, 0); g.add(s); g.add(box(0.12, 0.05, 0.05, solid(c), 0.05, -0.3, 0)); break;
     }
@@ -163,5 +164,41 @@ export function chandelier() {
   g.add(cyl(0.03, 0.03, 1, 4, solid(0x222222), 0, 0.5, 0));
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.6, 0.04, 4, 8), solid(0xb8902a)); ring.rotation.x = Math.PI / 2; g.add(ring);
   for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; g.add(candle(Math.cos(a) * 0.6, 0.02, Math.sin(a) * 0.6)); }
+  return g;
+}
+
+export function bed(rot = 0, color = 0x4a2a5a) {
+  const g = new THREE.Group();
+  g.add(box(1.7, 0.45, 2.7, surf('darkwood'), 0, 0.23, 0)); g.add(box(1.55, 0.22, 2.5, solid(color), 0, 0.57, 0.05));
+  g.add(box(1.2, 0.18, 0.5, solid(0xc8c0b0), 0, 0.77, -0.95)); g.add(box(1.7, 1.2, 0.1, surf('darkwood'), 0, 0.9, -1.3));
+  g.rotation.y = rot; return g;
+}
+export function stove() {
+  const g = new THREE.Group();
+  g.add(box(1.5, 0.95, 0.9, surf('metal'), 0, 0.475, 0));
+  for (const x of [-0.4, 0.4]) for (const z of [-0.2, 0.2]) { const b = cyl(0.17, 0.17, 0.03, 8, solid(0x0a0a0a), x, 0.97, z); g.add(b); }
+  for (let i = 0; i < 3; i++) g.add(box(0.1, 0.1, 0.06, glow(0xffb040), -0.3 + i * 0.3, 0.8, 0.47));
+  return g;
+}
+export function tank(h = 2.6) {
+  const g = new THREE.Group();
+  g.add(cyl(0.7, 0.7, 0.2, 8, surf('metal'), 0, 0.1, 0)); g.add(cyl(0.7, 0.7, 0.2, 8, surf('metal'), 0, h, 0));
+  const glass = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, h - 0.2, 8, 1, true), basic({ color: 0x70ffd0, transparent: true, opacity: 0.25, side: THREE.DoubleSide }));
+  glass.position.y = h / 2; g.add(glass);
+  const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.3, 0), glow(0x80ffb0)); core.position.y = h / 2; g.add(core); g.userData.core = core;
+  return g;
+}
+export function machine() {
+  const g = new THREE.Group();
+  g.add(box(4, 1.2, 2, surf('metal', 0x88aa99), 0, 0.6, 0));
+  g.add(box(3.2, 1.6, 1.4, surf('metal', 0x779988), 0, 2.0, 0));
+  for (const x of [-1, 0, 1]) { const w = cyl(0.35, 0.35, 0.12, 8, solid(0xd8b030), x, 2.0, 0.76); w.rotation.x = Math.PI / 2; g.add(w); }
+  const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.35, 0), glow(0xff4040)); core.position.set(0, 3.2, 0); g.add(core); g.userData.core = core;
+  return g;
+}
+export function lever() {
+  const g = new THREE.Group();
+  g.add(box(0.2, 0.7, 0.5, surf('metal'), 0, 0, 0));
+  const rod = box(0.08, 0.7, 0.08, solid(0xb02020), 0.2, 0.3, 0); rod.geometry.translate(0, 0.3, 0); const piv = new THREE.Group(); piv.position.set(0.1, 0, 0); piv.add(rod); rod.position.set(0, 0, 0); g.add(piv); g.userData.rod = piv;
   return g;
 }

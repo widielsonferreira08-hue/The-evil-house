@@ -10,13 +10,16 @@ import { ROOMS, ITEM_PLACEMENTS, NAV_NODES, WATCHER_PATROL, CRAWLER_SPAWNS, DOCS
 import * as P from '../environments/Props.js';
 import { buildWatcher } from '../entities/Watcher.js';
 import { buildCrawler } from '../entities/Crawler.js';
+import { buildShadow } from '../entities/Shadow.js';
 import { buildPossessedFox } from '../entities/PossessedFox.js';
 import { HUD } from '../ui/HUD.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { openInventory, readDocument } from '../ui/InventoryUI.js';
 import { h, root, MenuList, modal, slotPicker } from '../ui/ui.js';
 
-const ITEM_Y = { l_doc: 1.05, o_doc: 1.1, o_cry: 1.15 };
+const ITEM_Y = { l_doc: 1.05, o_doc: 1.1, o_cry: 1.15, k_doc: 1.05, b_doc: 0.95 };
+const DARK_ROOMS = ['bedrooms', 'lab', 'kitchen'];
+const TOTAL_CRYSTALS = ITEM_PLACEMENTS.filter((i) => i.type === 'crystal').length + 1; // +1 inside the office safe
 const FOX_PATROL = [[-6, -4], [6, -4], [0, -9], [-6, -13], [6, -13], [0, -6]];
 const FOX_NAV = [[0, -3], [-6, -3], [6, -3], [0, -8.5], [-7, -9], [7, -9], [0, -12], [-7, -14], [7, -14], [-2, -6], [2, -6]];
 const inside = (r, x, z, m = 0) => x >= r.x1 + m && x <= r.x2 - m && z >= r.z1 + m && z <= r.z2 - m;
@@ -46,11 +49,7 @@ export class MansionScene {
     this.rig = new CameraRig(this.camera); this.rig.sens = this.S.get('sensitivity');
     this.setShadows();
     // items
-    for (const d of ITEM_PLACEMENTS) {
-      if (st.taken.includes(d.id)) continue;
-      const m = P.itemMesh(d.type); const y = ITEM_Y[d.id] ?? (d.type === 'crystal' ? 0.6 : 0.4);
-      m.position.set(d.x, y, d.z); sc.add(m); this.items.push({ d, m, y });
-    }
+    for (const d of ITEM_PLACEMENTS) { if (st.taken.includes(d.id) || (d.req && !st.flags[d.req])) continue; this.spawnItem(d); }
     // doors
     for (const [id, dr] of Object.entries(this.world.doors)) if (st.doors[id]) dr.setOpen(true, true);
     if (st.flags.secret) this.world.doors.secret.setOpen(true, true);
@@ -66,6 +65,8 @@ export class MansionScene {
       return { ai: new EnemyAI({ x, z, patrol: [[x, z], [x + 2, z + 1.5], [x - 1, z + 2]], speedPatrol: 1.0, speedChase: 3.1, sight: 8, fov: Math.PI * 2, damage: 10, attackRange: 1.0, windup: 0.25, radius: 0.3, ignoreDoors: false, hearWalk: 6, home: { x, z } }), model: c, kind: 'crawler', alive: true };
     });
     this.enemies = [this.watcher, this.fox, ...this.crawlers];
+    this.shadows = [0, 1].map(() => { const m = buildShadow(); m.group.visible = false; sc.add(m.group); return { kind: 'shadow', alive: true, model: m, ai: { x: 0, z: 0, ry: 0, moving: false }, state: 'gone', timer: 3, lit: 0, cd: 0 }; });
+    if (st.flags.lab_open) this.world.lever.rod.rotation.z = -1;
     this.syncEnemyVisibility();
     // room
     this.room = this.roomAt(st.pos.x, st.pos.z) || ROOMS[5];
@@ -83,6 +84,11 @@ export class MansionScene {
   }
 
   // ---------- helpers ----------
+  spawnItem(d) {
+    const m = P.itemMesh(d.type); const y = ITEM_Y[d.id] ?? (d.type === 'crystal' ? 0.6 : 0.4);
+    m.position.set(d.x, y, d.z); this.scene.add(m); this.items.push({ d, m, y });
+  }
+  revealReq(req) { for (const d of ITEM_PLACEMENTS) if (d.req === req && !this.st.taken.includes(d.id) && !this.items.some((i) => i.d === d)) this.spawnItem(d); }
   roomAt(x, z) { return ROOMS.find((r) => inside(r, x, z)); }
   setShadows() {
     const q = this.S.get('shadowQuality'), sp = this.player.spot;
@@ -198,7 +204,7 @@ export class MansionScene {
     const geo = new THREE.BoxGeometry(0.06, 0.06, 12), m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0xd9a0ff }));
     m.position.set(pl.x + fx * 6.5 - Math.cos(pl.ry) * 0.6, 1.5, pl.z + fz * 6.5 + Math.sin(pl.ry) * 0.6); m.rotation.y = pl.ry; this.scene.add(m); this.beam = { m, t: 0.08 };
     let best = null, bd = 1e9;
-    for (const e of this.enemies) {
+    for (const e of [...this.enemies, ...this.shadows]) {
       if (!e.alive || !e.model.group.visible) continue;
       const dx = e.ai.x - pl.x, dz = e.ai.z - pl.z, d = Math.hypot(dx, dz);
       if (d > 13 || d < 0.1) continue;
@@ -208,6 +214,7 @@ export class MansionScene {
     }
     if (!best) return;
     if (best.kind === 'crawler') { best.alive = false; best.model.group.visible = false; this.app.audio.hit(); this.hud.toast('Crawler destroyed.'); }
+    else if (best.kind === 'shadow') { best.state = 'gone'; best.timer = 9; best.model.group.visible = false; this.app.audio.hit(); this.hud.toast('The shadow dissolves.'); }
     else if (best.kind === 'watcher') { best.ai.stagger = 2.8; this.app.audio.growl(); this.hud.toast('The Watcher is stunned!'); }
     else this.hud.toast('It does not even flinch...');
   }
@@ -226,7 +233,7 @@ export class MansionScene {
       if (st.lives <= 0) { this.gameOver(); return; }
       st.hp = 60; pl.dead = false; pl.hidden = false; pl.group.visible = true; pl.model.setAnim('idle');
       const c = st.checkpoint; pl.setPos(c.x, c.z, c.ry); pl.setLight(st.light && st.battery > 0);
-      this.enemies.forEach((e) => e.ai.reset());
+      this.enemies.forEach((e) => e.ai.reset()); this.shadows.forEach((x) => { x.state = 'gone'; x.timer = 3; });
       this.room = this.roomAt(c.x, c.z) || this.room; this.rig.setRoom(this.room); this.applyRoom(this.room, true); this.rig.snap(pl, this.col);
       this.hud.fade(false); this.hud.toast('LIFE LOST — ' + st.lives + ' left', 3.5); this.skip = 2;
     }, 2600);
@@ -262,8 +269,41 @@ export class MansionScene {
       if (pl.hidden && d < 2.3 && e.kind !== 'crawler') hiddenDanger = true;
     }
     if (wOn && this.watcher.alive) this.watcherDoors();
+    this.updateShadows(dt);
     this.hb -= dt; if ((chasing || nearest < 5) && this.hb <= 0) { a.heartbeat(); this.hb = chasing ? 0.7 : 1.1; }
     if (pl.hidden) { this.hiddenT = hiddenDanger ? this.hiddenT + dt : Math.max(0, this.hiddenT - dt); if (this.hiddenT > 3.2) { this.hiddenT = 0; this.exitHide(); this.hurtPlayer(30); this.hud.toast('It found you!'); } }
+  }
+  updateShadows(dt) {
+    const st = this.st, pl = this.player, t = this.t;
+    const dark = !!st.flags.shadows_on && DARK_ROOMS.includes(this.room.id) && !pl.dead;
+    for (const s of this.shadows) {
+      const a = s.ai;
+      if (!dark) { s.model.group.visible = false; s.state = 'gone'; s.timer = Math.min(s.timer, 2.5); continue; }
+      if (s.state === 'gone') { s.timer -= dt; s.model.group.visible = false; if (s.timer <= 0) this.spawnShadow(s); continue; }
+      s.model.group.visible = true; s.cd -= dt;
+      const dx = pl.x - a.x, dz = pl.z - a.z, d = Math.hypot(dx, dz) || 1;
+      const dot = (Math.sin(pl.ry) * -dx + Math.cos(pl.ry) * -dz) / d;
+      const lit = pl.light && !pl.hidden && d < 13 && dot > 0.8 && !this.col.segmentBlocked(pl.x, pl.z, a.x, a.z);
+      s.lit = lit ? s.lit + dt : Math.max(0, s.lit - dt * 0.6);
+      if (s.lit > 0.8) { s.state = 'gone'; s.timer = 7; s.model.group.visible = false; continue; }
+      a.moving = false;
+      if (!lit && !pl.hidden) {
+        const sp = pl.light ? 2.1 : 3.2, k = Math.min(d, sp * dt) / d;
+        const r = this.col.resolve(a.x + dx * k, a.z + dz * k, 0.35); a.x = r.x; a.z = r.z; a.moving = true; a.ry = Math.atan2(dx, dz);
+      }
+      if (d < 1.1 && s.cd <= 0 && !pl.hidden) { s.cd = 1.4; this.hurtPlayer(15); }
+      const g = s.model.group; g.position.set(a.x, 0, a.z); g.rotation.y = a.ry; s.model.update(t, a.moving, Math.min(1, s.lit / 0.8));
+    }
+  }
+  spawnShadow(s) {
+    const r = this.room, pl = this.player;
+    for (let i = 0; i < 14; i++) {
+      const x = r.x1 + 2 + Math.random() * (r.x2 - r.x1 - 4), z = r.z1 + 2 + Math.random() * (r.z2 - r.z1 - 4);
+      if (Math.hypot(x - pl.x, z - pl.z) < 7) continue;
+      const c = this.col.resolve(x, z, 0.4); if (Math.hypot(c.x - x, c.z - z) > 0.01) continue;
+      s.ai.x = x; s.ai.z = z; s.state = 'stalk'; s.lit = 0; s.cd = 1; return;
+    }
+    s.timer = 1;
   }
   watcherDoors() {
     const w = this.watcher.ai, pl = this.player;
@@ -294,6 +334,9 @@ export class MansionScene {
       this.syncEnemyVisibility();
       this.say([{ who: '???', text: '...Willow...', color: '#a64dff' }, { who: 'Willow', text: 'That voice... it sounds like mine.', color: '#ff8a1e' }, { who: 'Willow', text: 'The altar. Whatever I came here for, it is on the altar.', color: '#ff8a1e' }]);
     }
+    if (c.id === 'bedrooms' && !f.bed_seen) { f.bed_seen = true; f.shadows_on = true; au.whisper(); this.say([{ who: 'Willow', text: 'Did that shadow just move?', color: '#ff8a1e' }, { who: 'Willow', text: 'Light seems to make them fade. Keep the flashlight pointed at them.', color: '#ff8a1e' }]); }
+    if (c.id === 'kitchen' && !f.kit_seen) { f.kit_seen = true; f.shadows_on = true; this.hud.toast('Something stirs in the dark corners...', 3.5); }
+    if (c.id === 'lab' && !f.lab_seen) { f.lab_seen = true; au.stinger(); this.say([{ who: 'Willow', text: 'So this is where the crystals came from...', color: '#ff8a1e' }, { who: 'Willow', text: 'Memories. Somebody turned memories into stone.', color: '#ff8a1e' }]); }
     this.autosave();
   }
   snapshot() {
@@ -321,6 +364,9 @@ export class MansionScene {
     for (const k of w.wardrobes) consider(k.fx, k.fz, 1.5, 'Hide', () => this.enterHide(k));
     consider(w.safe.x, w.safe.z, 1.8, st.flags.safe_open ? 'Empty safe' : 'Use safe', () => this.useSafe());
     consider(w.panel.x, w.panel.z, 1.9, st.flags.secret ? 'Symbol panel (solved)' : 'Examine symbol panel', () => this.usePanel());
+    consider(w.stove.x, w.stove.z, 1.7, st.flags.cabinet ? 'Stove (nothing more here)' : 'Turn the stove dials', () => this.useStove());
+    consider(w.lever.x, w.lever.z, 1.7, st.flags.lab_open ? 'Lever (already pulled)' : 'Pull the lever', () => this.useLever());
+    consider(w.machine.x, w.machine.z, 2.2, st.flags.machine ? 'Machine (running)' : 'Examine the machine', () => this.useMachine());
     consider(w.altar.x, w.altar.z, 2.4, 'Touch the altar', () => this.useAltar());
     this.hud.setPrompt(best ? 'E — ' + best.label : '');
     if (best && inp.wasPressed('KeyE')) best.act();
@@ -334,7 +380,7 @@ export class MansionScene {
       const meta = this.app.saves.meta(); if (!meta.docs.includes(it.d.doc)) { meta.docs.push(it.d.doc); this.app.saves.setMeta(meta); }
       this.lockUI((done) => readDocument(this.app, it.d.doc, done)); return;
     }
-    if (t === 'crystal') { take(); st.crystals++; au.crystal(); this.hud.toast(`Purple crystal (${st.crystals}/7)`); return; }
+    if (t === 'crystal') { take(); st.crystals++; au.crystal(); this.hud.toast(`Purple crystal (${st.crystals}/${TOTAL_CRYSTALS})`); return; }
     if (t === 'ammo') { take(); st.ammo += it.d.qty || 3; au.pickup(); this.hud.toast(`+${it.d.qty || 3} ammo`); return; }
     if (!st.inv.canAdd(t)) { this.hud.toast('Inventory full.'); au.locked(); return; }
     st.inv.add(t); take(); au.pickup(); this.hud.toast('Picked up ' + ITEMS[t].name);
@@ -360,26 +406,44 @@ export class MansionScene {
   exitHide() {
     const pl = this.player, k = this.hideSpot; pl.hidden = false; pl.group.visible = true; pl.setPos(k.fx, k.fz); pl.setLight(this.st.light && this.st.battery > 0); this.app.audio.door(); this.skip = 1;
   }
-  useSafe() {
-    const st = this.st, f = st.flags;
-    if (f.safe_open) { this.hud.toast('The safe is empty.'); return; }
+  codeLock(title, code, hint, onSolve) {
     this.lockUI((done) => {
-      const m = modal(this.app, 'SAFE — 3 DIGITS', { onClose: done }); const dg = [0, 0, 0];
-      const dial = h('div', 'dial'); const spans = [];
+      const m = modal(this.app, title, { onClose: done }); const dg = [0, 0, 0];
+      const dial = h('div', 'dial');
       for (let i = 0; i < 3; i++) {
-        const c = h('div'), up = h('button', 'btn', '▲'), sp = h('span', '', '0'), dn = h('button', 'btn', '▼'); spans.push(sp);
+        const c = h('div'), up = h('button', 'btn', '▲'), sp = h('span', '', '0'), dn = h('button', 'btn', '▼');
         up.onclick = () => { dg[i] = (dg[i] + 1) % 10; sp.textContent = dg[i]; this.app.audio.select(); }; dn.onclick = () => { dg[i] = (dg[i] + 9) % 10; sp.textContent = dg[i]; this.app.audio.select(); };
         c.append(up, sp, dn); dial.appendChild(c);
       }
-      m.panel.appendChild(dial); const msg = h('div', 'small', 'Four... one... seven? Somebody wrote it down somewhere.'); m.panel.appendChild(msg);
+      m.panel.appendChild(dial); const msg = h('div', 'small', hint); m.panel.appendChild(msg);
       const b = h('div', 'btns'), ok = h('button', 'btn', 'OPEN'), cl = h('button', 'btn', 'CLOSE'); b.append(cl, ok); m.panel.appendChild(b);
       cl.onclick = () => m.close();
-      ok.onclick = () => {
-        if (dg.join('') === '417') {
-          f.safe_open = true; this.app.audio.crystal(); st.inv.add('cellar_key'); st.crystals++; st.ammo += 4; this.hud.toast('Safe opened: Iron Key, crystal, ammo.', 4); m.close();
-        } else { this.app.audio.locked(); msg.textContent = 'ERROR — wrong code.'; msg.style.color = '#ff6a6a'; }
-      };
+      ok.onclick = () => { if (dg.join('') === code) { m.close(); onSolve(); } else { this.app.audio.locked(); msg.textContent = 'ERROR — wrong code.'; msg.style.color = '#ff6a6a'; } };
     });
+  }
+  useSafe() {
+    const st = this.st, f = st.flags;
+    if (f.safe_open) { this.hud.toast('The safe is empty.'); return; }
+    this.codeLock('SAFE — 3 DIGITS', '417', 'Four... one... seven? Somebody wrote it down somewhere.', () => {
+      f.safe_open = true; this.app.audio.crystal(); st.inv.add('cellar_key'); st.crystals++; st.ammo += 4; this.hud.toast('Safe opened: Iron Key, crystal, ammo.', 4);
+    });
+  }
+  useStove() {
+    const f = this.st.flags;
+    if (f.cabinet) { this.hud.toast('The cabinet beside the stove is open.'); return; }
+    this.codeLock('STOVE DIALS', '209', 'Three dials. Somebody here had a birthday...', () => { f.cabinet = true; this.revealReq('cabinet'); this.app.audio.door(); this.hud.toast('Click — the cabinet beside the stove opened.', 4); });
+  }
+  useLever() {
+    const f = this.st.flags, au = this.app.audio;
+    if (f.lab_open) { this.hud.toast('The lever is already pulled.'); return; }
+    f.lab_open = true; this.world.lever.rod.rotation.z = -1; this.world.doors.labdoor.setOpen(true); au.door(); au.thump(); this.hud.toast('Stone grinds against stone... a hidden door opened.', 4);
+  }
+  useMachine() {
+    const st = this.st, f = st.flags, n = st.inv.count('gear');
+    if (f.machine) { this.hud.toast('The machine hums quietly.'); return; }
+    if (n < 2) { this.app.audio.locked(); this.hud.toast(`The mechanism is missing brass gears (${n}/2).`, 3.5); return; }
+    st.inv.remove('gear', 2); f.machine = true; this.revealReq('machine'); this.world.machine.core.material.color.setHex(0x60ff90); this.app.audio.crystal(); this.app.audio.thump();
+    this.hud.toast('The vault opened! Crystals gleam inside.', 4);
   }
   usePanel() {
     const f = this.st.flags;
@@ -400,7 +464,7 @@ export class MansionScene {
   useAltar() {
     const st = this.st, ending = st.crystals >= 5 ? 'good' : 'bad';
     this.over = true; this.app.audio.stinger(); this.hud.fade(true);
-    setTimeout(() => this.app.goto('ending', { ending, state: st }), 1200);
+    setTimeout(() => this.app.goto('ending', { ending, state: st, perfect: st.crystals >= TOTAL_CRYSTALS }), 1200);
   }
   openInventory(back) {
     this.lockUI((done) => openInventory(this.app, this.st, { onClose: () => { done(); back && back(); }, onUse: (id) => { const m = this.st.useItem(id); this.app.audio.pickup(); return m; } }));

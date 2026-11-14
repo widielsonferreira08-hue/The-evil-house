@@ -4,6 +4,8 @@ export const ITEMS = {
   battery:    { name: 'Battery', icon: '🔋', stack: 3, use: 'battery', desc: 'Restores 50% of flashlight power.' },
   medkit:     { name: 'Med Kit', icon: '✚', stack: 2, use: 'heal', desc: 'Restores 50 HP.' },
   brass_key:  { name: 'Brass Key', icon: '🗝', stack: 1, desc: 'An old brass key. The tag reads: OFFICE.' },
+  bedroom_key: { name: 'Bedroom Key', icon: '🗝', stack: 1, desc: 'A small silver key. The tag reads: GUEST ROOMS.' },
+  gear:       { name: 'Brass Gear', icon: '⚙', stack: 2, desc: 'A heavy brass gear from an old mechanism. There must be a machine that needs it.' },
   cellar_key: { name: 'Iron Key', icon: '🔑', stack: 1, desc: 'A cold iron key. It smells of damp stone. It must open something below.' },
 };
 
