@@ -1,0 +1,19 @@
+THE EVIL HOUSE - CURSED MEMORIES
+
+OPCAO 1 - Jogar agora (sem instalar nada alem do Python):
+  Windows: dois cliques em jogar.bat
+  Mac/Linux: ./jogar.sh
+
+OPCAO 2 - Gerar o .exe de verdade (Windows):
+  1. Instale o Node.js (nodejs.org)
+  2. Dois cliques em GERAR-EXE.bat
+  3. O .exe portatil aparece na pasta "dist" (basta dar dois cliques, sem instalar)
+
+  Para testar sem gerar o exe: npm install  e depois  npm start
+  Dentro do jogo, F11 alterna tela cheia.
+
+OPCAO 3 - Deixar o GitHub gerar o .exe:
+  1. Suba TODO o conteudo desta pasta para a raiz de um repositorio (inclusive a pasta .github)
+  2. Aba Actions > "Gerar .exe" > Run workflow
+  3. Quando terminar (uns 3-5 min), abra a execucao e baixe "the-evil-house-exe" em Artifacts
+  Dica: criar uma tag (ex.: v1.0.0) publica o .exe numa Release automaticamente.
